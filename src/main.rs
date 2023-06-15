@@ -1,7 +1,9 @@
+use dialoguer::Select;
 use std::collections::HashMap;
 use std::io::{stdin, stdout, Write};
 use std::path::{Path, PathBuf};
 use std::process::exit;
+use std::str::FromStr;
 use std::{env, fs};
 
 use home::home_dir;
@@ -90,30 +92,39 @@ fn print_one_line(print_item: &String) {
     stdout().flush().unwrap();
 }
 
-fn store_visited_path(path: &PathBuf, store_hash_map: &mut HashMap<String, PathBuf>) {
-    let storing_path = path.clone();
+fn store_visited_path(path: &PathBuf, store_hash_map: &mut HashMap<String, Vec<PathBuf>>) {
+    let mut storing_path = vec![path.clone()];
     let path_str = String::from(path.to_str().unwrap());
     let seperated_path_collection: Vec<&str> = path_str.split("/").collect();
     let key_string = String::from(seperated_path_collection[seperated_path_collection.len() - 1]);
-    store_hash_map.insert(key_string, storing_path);
+
+    if store_hash_map.contains_key(&key_string) {
+        let mut new_storing_vector: Vec<PathBuf> = store_hash_map.get(&key_string).unwrap().clone();
+        new_storing_vector.append(&mut storing_path);
+
+        store_hash_map.insert(key_string, new_storing_vector);
+    } else {
+        store_hash_map.insert(key_string, storing_path);
+    }
 }
 
-fn previous_cd<'a>(
-    visited_path: &'a HashMap<String, PathBuf>,
-    input: &String,
-    current_dir: &'a PathBuf,
-) -> &'a PathBuf {
-    if visited_path.is_empty() {
-        println!("Invalid Command");
-        current_dir
+fn previous_cd<'a>(visited_path: &'a HashMap<String, Vec<PathBuf>>, input: &String) -> &'a PathBuf {
+    if visited_path.get(input).unwrap().len() == 1 {
+        &visited_path.get(input).unwrap()[0]
     } else {
-        visited_path.get(input).unwrap()
+        let mut list_for_selection: Vec<String> = vec![];
+        let all_visited_path = visited_path.get(input).unwrap();
+        for item in all_visited_path.into_iter() {
+            list_for_selection.push(item.clone().into_os_string().into_string().unwrap());
+        }
+        let selected_path_index = Select::new().items(&list_for_selection).interact();
+        &visited_path.get(input).unwrap()[selected_path_index.unwrap()]
     }
 }
 
 fn main() {
     //let mut visited_path: Vec<String> = Vec::new();
-    let mut visited_path: HashMap<String, PathBuf> = HashMap::new();
+    let mut visited_path: HashMap<String, Vec<PathBuf>> = HashMap::new();
     let mut current_dir = env::current_dir().unwrap();
     let current_path = convert_home_path(&current_dir);
     let stdin = stdin();
@@ -130,8 +141,13 @@ fn main() {
                 } else if splitted_input[0] == "cd" {
                     current_dir = cd_command(input, &current_dir);
                     store_visited_path(&current_dir, &mut visited_path);
+                    println!("{:?}", visited_path);
                 } else {
-                    current_dir = previous_cd(&visited_path, &input, &current_dir).clone();
+                    if visited_path.is_empty() {
+                        println!("Invalid Command");
+                    } else {
+                        current_dir = previous_cd(&visited_path, &input).clone();
+                    }
                 }
                 print_one_line(&convert_home_path(&current_dir));
             }
