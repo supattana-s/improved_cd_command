@@ -9,9 +9,14 @@ pub fn store_visited_path(path: &PathBuf, store_hash_map: &mut HashMap<String, V
 
     if store_hash_map.contains_key(&key_string) {
         let mut new_storing_vector: Vec<PathBuf> = store_hash_map.get(&key_string).unwrap().clone();
-        new_storing_vector.append(&mut storing_path);
-
-        store_hash_map.insert(key_string, new_storing_vector);
+        println!("{:?}", new_storing_vector);
+        if !store_hash_map.get(&key_string).unwrap().contains(&path) {
+            println!("yes");
+            new_storing_vector.append(&mut storing_path);
+            store_hash_map.insert(key_string, new_storing_vector);
+        } else {
+            println!("Hi")
+        }
     } else {
         store_hash_map.insert(key_string, storing_path);
     }

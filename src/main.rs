@@ -35,6 +35,9 @@ fn main() {
                     current_dir = cd_command(input, &current_dir);
                     store_visited_path(&current_dir, &mut visited_path);
                     println!("{:?}", visited_path);
+                } else if input == "" {
+                    print_one_line(&convert_home_path(&current_dir));
+                    continue;
                 } else {
                     if visited_path.is_empty() {
                         println!("Invalid Command");
